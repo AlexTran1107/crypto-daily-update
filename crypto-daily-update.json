@@ -1,0 +1,13 @@
+{
+  "type": "service_account",
+  "project_id": "crypto-daily-update",
+  "private_key_id": "f462b57693659bd2ae410af20a8c300aef0edbdf",
+  "private_key": "-----BEGIN PRIVATE KEY-----\nMIIEvQIBADANBgkqhkiG9w0BAQEFAASCBKcwggSjAgEAAoIBAQCdZeuOJB7Z+gg4\njCIbqHSFEiHWll5Mp0nF/JFYhJmgMikbEKhKuPY9pExFj7bJIEIYtIiG1lnWniYB\nFEtUdsx8mG0W4u/8M3cjs8iyoMPBlvz3gTnJOZa+ENxAQYzUTnduKVGaUGS9cMmb\nBQQz7CxHIrBNC4rFvz71eTgkkvP7PA05HkTeCWo4G1HCPPzh9N+A6H7ZuLyt+Xlj\nNtZsEQis4yJZBB8WR7x08buivIEFQPqeAglxonUDFZcVe7ZbG+lGp2Lqx3NbdkjE\n6ZOMU4ATZ9QdD6r7BspS/Ou7p/V/oSPKT4Kl3Jk8XeD9Ehl9kmTZir3sf+YYJJQr\nrX3ftgJBAgMBAAECggEAA3gUSTCIvUpIaXols406vbbWx/ZuF0OJ4ccpey1nfydR\n3nzHT8fMNhM3ouIaL8xCJq4ecvXZGqzHRsdwKlk4tC+OGna3njvyZpcbH5xBWkRC\nGLCogdPPC6r+lrw3HtQIp/T5TWTTlpUMfXoeo8gTGQGFyBnuteFrYWDJxO0X+2fY\nYK+rFQAsxIWR5QSAArKpLny4eFeLsGqJZdtsjTOt3vDhl4c05Mogj9IlXUZokq0E\nnIq8gcAtsL5U7LWGiKqMWRSbqjkJdTND21kAhDcTZKNaiLaeaAABg4I2cMuD8w8S\noFN6h30piGqJEDW+T0Z2B5IZ2HBC58d4wPSNcx4pwQKBgQDTi2dPd9WMUzUX1LOr\nwqf++lCgU4LL4Vb/ZYKranAMunU3twWF5AFw+B4xqnAj57WJ9U47oD9oRdL8Yp8l\n87NzUXy/yxqpypjcgyzscYzkhHYQ6CqN68OGWjTMFMqFtQzVR4iO5WgP6HPYoSRo\nUgZv+s/zfA87+9/AuRjcB2A8oQKBgQC+eZE0fGN47QZ/TG3rJVFlSlGPZsKoMlCE\niHD1P+gyPHICWoRsEcg4jh/+HWydFMFvB/gbZ0JADPSBA9fV4MOQ/vSPah7qKBe1\n/MCb8d/VOG8LvOSmNGtfcKwKmq1RvMYCbhEYBgdsorb7hY6JkQ1s8y1Awajiuo74\nK2xXBetBoQKBgFI3iORy35VVNXpYmaf01JQdtz5Ilrokj0pdqoZyrK/Vu/72a/gY\noJLGa/3Djyf1QzImG8zCwEIHeTPMJKx8Zc846XIlPuykp/p0JP6UNz0NWlHB2eAk\ntG5AGusCXZ/PuPgfgCyBbotYPcYBAwRkdMoKwc2Q9t7KSrE9fzLszvNhAoGAQshY\n0vAx6DoipwtjFqkU6tCt2/uJkHNjq7Qy9qobfVGYH58hAssRSlL6gJxMcp7OW2GN\n6f3ASrjAGWQBjumpZ/McSBRLFopMFfCyj3q0oguRU6o8+NE0PFhC2cz1q8zmGAAD\nWkry23IJehKPsUf8TxDL8wJzdls2uWhwKerXW0ECgYEAlbOg3H8ivtnjGLVZEaEK\nMSAfc1cZ3GCLXFCiuC95MC7v8KEYYPqyjogBdLcKbq20uDEM0+bFrMH9uXBzolux\nKI4FjIcSKdsdf4u3uhor5gEQ/CnD6M8SSrviI5hd82B+8VJAEmsJe9waVjWZkJwn\nzCmIw7W1A9RFnSRXWmh04MY=\n-----END PRIVATE KEY-----\n",
+  "client_email": "crypto-bot@crypto-daily-update.iam.gserviceaccount.com",
+  "client_id": "100047634818535211228",
+  "auth_uri": "https://accounts.google.com/o/oauth2/auth",
+  "token_uri": "https://oauth2.googleapis.com/token",
+  "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
+  "client_x509_cert_url": "https://www.googleapis.com/robot/v1/metadata/x509/crypto-bot%40crypto-daily-update.iam.gserviceaccount.com",
+  "universe_domain": "googleapis.com"
+}
