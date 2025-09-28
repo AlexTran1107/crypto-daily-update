@@ -111,19 +111,20 @@ def fetch_crypto_data(coin_ids):
 def update_google_sheet(rows):
     sh = client.open_by_key(SPREADSHEET_ID)
     
-    # Tên sheet theo ngày
-    sheet_name = datetime.now().strftime("%Y-%m-%d")
+    # Nếu chưa có sheet Data thì tạo
     try:
-        worksheet = sh.worksheet(sheet_name)
+        worksheet = sh.worksheet("Data")
     except gspread.exceptions.WorksheetNotFound:
-        worksheet = sh.add_worksheet(title=sheet_name, rows="100", cols="20", index=0)
+        worksheet = sh.add_worksheet(title="Data", rows="1000", cols="20")
 
-    header = ["Coin", "Giá (USD)", "% 24h", "RSI", "Phân tích"]
-    worksheet.clear()
-    worksheet.append_row(header)
+        # Tạo header
+        header = ["Date", "Coin", "Giá (USD)", "% 24h", "RSI", "Phân tích"]
+        worksheet.append_row(header)
 
+    # Thêm dữ liệu mới (append theo ngày)
+    today = datetime.now().strftime("%Y-%m-%d")
     for row in rows:
-        worksheet.append_row(row)
+        worksheet.append_row([today] + row)
 
     # ===== Format Header =====
     fmt = {
