@@ -5,6 +5,7 @@ import json
 from google.oauth2 import service_account
 import pandas as pd
 from datetime import datetime
+from googleapiclient.discovery import build
 
 # ===============================
 # Google Sheet Setup
@@ -115,7 +116,7 @@ def update_google_sheet(rows):
     try:
         worksheet = sh.worksheet(sheet_name)
     except gspread.exceptions.WorksheetNotFound:
-        worksheet = sh.add_worksheet(title=sheet_name, rows="100", cols="20")
+        worksheet = sh.add_worksheet(title=sheet_name, rows="100", cols="20", index=0)
 
     header = ["Coin", "Giá (USD)", "% 24h", "RSI", "Phân tích"]
     worksheet.clear()
@@ -143,23 +144,141 @@ def update_google_sheet(rows):
     })
 
     print("✅ Google Sheet updated with formatting!")
+# ===============================
+# Hàm vẽ Charts gom vào 1 sheet
+# ===============================
+def create_charts_in_one_sheet(spreadsheet_id, creds, coins):
+    service = build("sheets", "v4", credentials=creds)
 
+    # Lấy spreadsheet info
+    spreadsheet = service.spreadsheets().get(spreadsheetId=spreadsheet_id).execute()
+    sheet_map = {s["properties"]["title"]: s["properties"]["sheetId"] for s in spreadsheet["sheets"]}
+
+    # Nếu chưa có sheet "Charts" thì tạo
+    if "Charts" not in sheet_map:
+        add_sheet_req = {
+            "addSheet": {"properties": {"title": "Charts"}}
+        }
+        resp = service.spreadsheets().batchUpdate(
+            spreadsheetId=spreadsheet_id,
+            body={"requests": [add_sheet_req]}
+        ).execute()
+        charts_sheet_id = resp["replies"][0]["addSheet"]["properties"]["sheetId"]
+    else:
+        charts_sheet_id = sheet_map["Charts"]
+
+    # Xóa chart cũ trong sheet "Charts"
+    spreadsheet = service.spreadsheets().get(spreadsheetId=spreadsheet_id, includeGridData=False).execute()
+    charts = spreadsheet.get("sheets", [])[0].get("charts", [])
+    delete_reqs = [{"deleteEmbeddedObject": {"objectId": chart["chartId"]}} for chart in charts]
+    if delete_reqs:
+        service.spreadsheets().batchUpdate(spreadsheetId=spreadsheet_id, body={"requests": delete_reqs}).execute()
+
+    # Tạo chart mới cho mỗi coin
+    requests = []
+    start_row = 0
+    for coin in coins:
+        requests.append({
+            "addChart": {
+                "chart": {
+                    "spec": {
+                        "title": f"Price history of {coin}",
+                        "basicChart": {
+                            "chartType": "LINE",
+                            "legendPosition": "BOTTOM_LEGEND",
+                            "axis": [
+                                {"position": "BOTTOM_AXIS", "title": "Date"},
+                                {"position": "LEFT_AXIS", "title": "Price (USD)"}
+                            ],
+                            "domains": [{
+                                "domain": {
+                                    "sourceRange": {
+                                        "sources": [{
+                                            "sheetId": sheet_map["Data"],
+                                            "startRowIndex": 1,
+                                            "endRowIndex": 1000,  # đủ dữ liệu 1000 ngày
+                                            "startColumnIndex": 0,
+                                            "endColumnIndex": 1
+                                        }]
+                                    }
+                                }
+                            }],
+                            "series": [{
+                                "series": {
+                                    "sourceRange": {
+                                        "sources": [{
+                                            "sheetId": sheet_map["Data"],
+                                            "startRowIndex": 1,
+                                            "endRowIndex": 1000,
+                                            "startColumnIndex": coins.index(coin)+1,
+                                            "endColumnIndex": coins.index(coin)+2
+                                        }]
+                                    }
+                                },
+                                "targetAxis": "LEFT_AXIS"
+                            }]
+                        }
+                    },
+                    "position": {
+                        "overlayPosition": {
+                            "anchorCell": {
+                                "sheetId": charts_sheet_id,
+                                "rowIndex": start_row,
+                                "columnIndex": 0
+                            }
+                        }
+                    }
+                }
+            }
+        })
+        start_row += 20  # dịch vị trí chart xuống để không chồng nhau
+
+    service.spreadsheets().batchUpdate(spreadsheetId=spreadsheet_id, body={"requests": requests}).execute()
+    print("📊 Charts updated!")
+
+# ===============================
+# Hàm reorder sheet
+# ===============================
+def reorder_sheets(spreadsheet_id, creds):
+    service = build("sheets", "v4", credentials=creds)
+    spreadsheet = service.spreadsheets().get(spreadsheetId=spreadsheet_id).execute()
+
+    requests = []
+    sheet_map = {s["properties"]["title"]: s["properties"]["sheetId"] for s in spreadsheet["sheets"]}
+
+    if "Charts" in sheet_map:
+        requests.append({
+            "updateSheetProperties": {
+                "properties": {"sheetId": sheet_map["Charts"], "index": 0},
+                "fields": "index"
+            }
+        })
+    if "Data" in sheet_map:
+        requests.append({
+            "updateSheetProperties": {
+                "properties": {"sheetId": sheet_map["Data"], "index": 1},
+                "fields": "index"
+            }
+        })
+
+    if requests:
+        service.spreadsheets().batchUpdate(
+            spreadsheetId=spreadsheet_id, body={"requests": requests}
+        ).execute()
+        print("📑 Sheets reordered!")
+        
 # ===============================
 # Main
 # ===============================
 if __name__ == "__main__":
-    coins = ["bitcoin", "ethereum", "render-token"]  # sửa danh sách coin bạn theo dõi
-    data = fetch_crypto_data(coins)
+    coins = ["bitcoin", "ethereum", "render-token"]
 
+    data = fetch_crypto_data(coins)
     rows = []
     for coin in data:
         insight = generate_insight(coin["name"], coin["price"], coin["change_24h"], coin["rsi"])
-        rows.append([
-            coin["name"],
-            coin["price"],
-            coin["change_24h"],
-            coin["rsi"],
-            insight
-        ])
+        rows.append([coin["name"], coin["price"], coin["change_24h"], coin["rsi"], insight])
 
-    update_google_sheet(rows)
+    update_google_sheet(rows)  # B1: update data
+    create_charts_in_one_sheet(SPREADSHEET_ID, creds, coins)  # B2: update charts
+    reorder_sheets(SPREADSHEET_ID, creds)  # B3: reorder vị trí sheet
