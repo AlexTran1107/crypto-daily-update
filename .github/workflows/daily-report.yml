@@ -1,0 +1,29 @@
+name: Daily Crypto Report
+
+on:
+  schedule:
+    # chạy mỗi 5 phút 1 lần để test
+    - cron: "*/5 * * * *"
+    #- cron: "0 1 * * *"   # 8h sáng VN = 1h UTC
+  workflow_dispatch:
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: "3.10"
+
+      - name: Install dependencies
+        run: |
+          pip install gspread google-auth requests
+
+      - name: Run script
+        env:
+          GOOGLE_SHEET_ID: ${{ secrets.GOOGLE_SHEET_ID }}
+          SERVICE_ACCOUNT_JSON: ${{ secrets.GSHEET_CREDENTIALS }}
+        run: python crypto-daily-report.py

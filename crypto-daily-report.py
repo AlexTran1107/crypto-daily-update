@@ -1,19 +1,29 @@
-import requests
+import os
+import base64
+import json
 import gspread
 from google.oauth2 import service_account
 from datetime import datetime
+import requests
 
 COINS = ["bitcoin", "ethereum", "render-token"]
 CURRENCY = "usd"
-DAYS = 1   # chỉ cần giá 24h
 
-# Google Sheets config
-SPREADSHEET_ID = "1gTApRPuekyFfPEUAvOe8yTx5WZoE-WYepzC1InZCr-c"
-NEW_SHEET_NAME = datetime.now().strftime("%Y-%m-%d")  # mỗi ngày 1 sheet mới
-SERVICE_ACCOUNT_FILE = "/Users/alextran/Downloads/Automation/crypto-daily-update/crypto-daily-update.json"  # file json bạn tải từ Google
+SPREADSHEET_ID = os.environ["GOOGLE_SHEET_ID"]  # lấy từ secrets
+NEW_SHEET_NAME = datetime.now().strftime("%Y-%m-%d")
+
+def get_credentials():
+    service_account_info = json.loads(
+        base64.b64decode(os.environ["SERVICE_ACCOUNT_JSON"]).decode("utf-8")
+    )
+    SCOPES = [
+        "https://spreadsheets.google.com/feeds",
+        "https://www.googleapis.com/auth/drive",
+    ]
+    return service_account.Credentials.from_service_account_info(service_account_info, scopes=SCOPES)
 
 def fetch_data(coin):
-    url = f"https://api.coingecko.com/api/v3/simple/price"
+    url = "https://api.coingecko.com/api/v3/simple/price"
     params = {"ids": coin, "vs_currencies": CURRENCY, "include_24hr_change": "true"}
     r = requests.get(url, params=params).json()
     price = r[coin][CURRENCY]
@@ -21,10 +31,8 @@ def fetch_data(coin):
     return price, change
 
 def update_google_sheet(data):
-    SCOPES = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/drive"]
-    creds = service_account.Credentials.from_service_account_file(SERVICE_ACCOUNT_FILE, scopes=SCOPES)
+    creds = get_credentials()
     client = gspread.authorize(creds)
-
     sh = client.open_by_key(SPREADSHEET_ID)
     try:
         worksheet = sh.add_worksheet(title=NEW_SHEET_NAME, rows="100", cols="10")
