@@ -1,8 +1,5 @@
 name: Daily Crypto Report
 
-run: |
-    pip install gspread google-auth requests pandas
-
 on:
   schedule:
     # chạy mỗi 5 phút 1 lần để test
@@ -23,7 +20,7 @@ jobs:
 
       - name: Install dependencies
         run: |
-          pip install gspread google-auth requests
+          pip install gspread google-auth requests pandas
 
       - name: Run script
         env:
