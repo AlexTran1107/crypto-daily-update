@@ -4,6 +4,7 @@ import gspread
 import json
 from google.oauth2 import service_account
 import pandas as pd
+from datetime import datetime
 
 # ===============================
 # Google Sheet Setup
@@ -108,7 +109,13 @@ def fetch_crypto_data(coin_ids):
 # ===============================
 def update_google_sheet(rows):
     sh = client.open_by_key(SPREADSHEET_ID)
-    worksheet = sh.sheet1
+    
+    # Tên sheet theo ngày
+    sheet_name = datetime.now().strftime("%Y-%m-%d")
+    try:
+        worksheet = sh.worksheet(sheet_name)
+    except gspread.exceptions.WorksheetNotFound:
+        worksheet = sh.add_worksheet(title=sheet_name, rows="100", cols="20")
 
     header = ["Coin", "Giá (USD)", "% 24h", "RSI", "Phân tích"]
     worksheet.clear()
