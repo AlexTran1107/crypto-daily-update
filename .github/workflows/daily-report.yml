@@ -2,9 +2,7 @@ name: Daily Crypto Report
 
 on:
   schedule:
-    # chạy mỗi 5 phút 1 lần để test
-    - cron: "*/5 * * * *"
-    #- cron: "0 1 * * *"   # 8h sáng VN = 1h UTC
+    - cron: "0 1 * * *"   # 8h sáng VN = 1h UTC
   workflow_dispatch:
 
 jobs:
