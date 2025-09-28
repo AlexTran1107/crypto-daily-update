@@ -13,14 +13,13 @@ SPREADSHEET_ID = os.environ["GOOGLE_SHEET_ID"]  # lấy từ secrets
 NEW_SHEET_NAME = datetime.now().strftime("%Y-%m-%d")
 
 def get_credentials():
-    service_account_info = json.loads(
-        base64.b64decode(os.environ["GSHEET_CREDENTIALS"]).decode("utf-8")
-    )
-    SCOPES = [
-        "https://spreadsheets.google.com/feeds",
-        "https://www.googleapis.com/auth/drive",
-    ]
-    return service_account.Credentials.from_service_account_info(service_account_info, scopes=SCOPES)
+    creds_json = os.environ["GSHEET_CREDENTIALS"]
+    info = json.loads(creds_json)
+    creds = service_account.Credentials.from_service_account_info(info, scopes=[
+        "https://www.googleapis.com/auth/spreadsheets",
+        "https://www.googleapis.com/auth/drive"
+    ])
+    return creds
 
 def fetch_data(coin):
     url = "https://api.coingecko.com/api/v3/simple/price"
