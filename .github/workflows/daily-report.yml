@@ -25,5 +25,5 @@ jobs:
       - name: Run script
         env:
           GOOGLE_SHEET_ID: ${{ secrets.GOOGLE_SHEET_ID }}
-          SERVICE_ACCOUNT_JSON: ${{ secrets.GSHEET_CREDENTIALS }}
+          GSHEET_CREDENTIALS: ${{ secrets.GSHEET_CREDENTIALS }}
         run: python crypto-daily-report.py

@@ -14,7 +14,7 @@ NEW_SHEET_NAME = datetime.now().strftime("%Y-%m-%d")
 
 def get_credentials():
     service_account_info = json.loads(
-        base64.b64decode(os.environ["SERVICE_ACCOUNT_JSON"]).decode("utf-8")
+        base64.b64decode(os.environ["GSHEET_CREDENTIALS"]).decode("utf-8")
     )
     SCOPES = [
         "https://spreadsheets.google.com/feeds",
