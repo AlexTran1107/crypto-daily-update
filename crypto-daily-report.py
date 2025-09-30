@@ -109,126 +109,81 @@ def fetch_crypto_data(coin_ids):
 # Update Google Sheet
 # ===============================
 def update_google_sheet(rows):
+    """
+    Ghi các rows vào sheet 'Data' (append theo ngày).
+    Đảm bảo header tồn tại. Format header + auto-resize cột.
+    rows: list of [coin, price, change_24h, rsi, insight]
+    """
     sh = client.open_by_key(SPREADSHEET_ID)
-    
-    # Nếu chưa có sheet Data thì tạo
+
+    # chuẩn header mà build_chartdata kỳ vọng: Date, Coin, Giá, %24h, RSI, Phân tích
+    header = ["Date", "Coin", "Giá (USD)", "% 24h", "RSI", "Phân tích"]
+
+    # Lấy hoặc tạo sheet 'Data'
     try:
         worksheet = sh.worksheet("Data")
+        created = False
     except gspread.exceptions.WorksheetNotFound:
-        worksheet = sh.add_worksheet(title="Data", rows="1000", cols="20")
+        worksheet = sh.add_worksheet(title="Data", rows="1000", cols=str(len(header)), index=1)
+        created = True
 
-        # Tạo header
-        header = ["Date", "Coin", "Giá (USD)", "% 24h", "RSI", "Phân tích"]
-        worksheet.append_row(header)
+    # Nếu mới tạo, ghi header. Nếu đã tồn tại, đảm bảo header khớp hoặc cập nhật lại
+    if created:
+        worksheet.append_row(header, value_input_option="USER_ENTERED")
+    else:
+        first_row = worksheet.row_values(1)
+        # normalize: strip and compare first len(header) cells
+        first_row_norm = [c.strip() for c in first_row] if first_row else []
+        if first_row_norm[:len(header)] != header:
+            # ghi lại header (ghi overwrite A1..F1)
+            worksheet.update("A1:F1", [header], value_input_option="USER_ENTERED")
 
-    # Thêm dữ liệu mới (append theo ngày)
+    # Chuẩn bị dữ liệu append: thêm cột Date phía trước
     today = datetime.now().strftime("%Y-%m-%d")
-    for row in rows:
-        worksheet.append_row([today] + row)
+    append_values = []
+    for r in rows:
+        # đảm bảo r có đúng 5 giá trị: coin, price, change_24h, rsi, insight
+        # nếu thiếu, bổ sung chuỗi rỗng
+        padded = list(r) + [""] * (5 - len(r))
+        append_values.append([today] + padded)
+
+    if append_values:
+        # append_rows là batch, nhanh hơn append_row trong loop
+        worksheet.append_rows(append_values, value_input_option="USER_ENTERED")
 
     # ===== Format Header =====
-    fmt = {
-        "backgroundColor": {"red": 0.2, "green": 0.6, "blue": 0.86},  # xanh dương đậm
-        "horizontalAlignment": "CENTER",
-        "textFormat": {"foregroundColor": {"red": 1, "green": 1, "blue": 1}, "bold": True}
-    }
-    worksheet.format("A1:E1", fmt)
+    try:
+        fmt = {
+            "backgroundColor": {"red": 0.2, "green": 0.6, "blue": 0.86},
+            "horizontalAlignment": "CENTER",
+            "textFormat": {"foregroundColor": {"red": 1, "green": 1, "blue": 1}, "bold": True}
+        }
+        worksheet.format("A1:F1", fmt)
+    except Exception as e:
+        print("⚠️ Warning: header formatting failed:", e)
 
     # ===== Auto resize columns =====
-    worksheet.resize(len(rows) + 1, len(header))
-    worksheet.spreadsheet.batch_update({
-        "requests": [
-            {"autoResizeDimensions": {
-                "dimensions": {"sheetId": worksheet._properties['sheetId'], "dimension": "COLUMNS", "startIndex": 0, "endIndex": len(header)}
-            }}
-        ]
-    })
-
-    print("✅ Google Sheet updated with formatting!")
-
-def build_chartdata_from_data_sheet(spreadsheet_id, creds, coins):
-    """
-    Đọc sheet 'Data' (dạng long), pivot thành sheet 'ChartData' (dạng wide):
-    Date | coin1_price | coin1_pct | coin2_price | coin2_pct | ...
-    """
-    service = build("sheets", "v4", credentials=creds)
-    sh = client.open_by_key(spreadsheet_id)
-
-    # Lấy sheet Data (phải tồn tại)
     try:
-        data_ws = sh.worksheet("Data")
-    except gspread.exceptions.WorksheetNotFound:
-        raise Exception("Sheet 'Data' không tồn tại. Script cần sheet 'Data' để build ChartData.")
+        sheet_id = worksheet._properties["sheetId"]
+        sh.batch_update({
+            "requests": [
+                {
+                    "autoResizeDimensions": {
+                        "dimensions": {
+                            "sheetId": sheet_id,
+                            "dimension": "COLUMNS",
+                            "startIndex": 0,
+                            "endIndex": len(header)
+                        }
+                    }
+                }
+            ]
+        })
+    except Exception as e:
+        print("⚠️ Warning: auto-resize failed:", e)
 
-    all_vals = data_ws.get_all_values()
-    if len(all_vals) <= 1:
-        dates = []
-        rows = []
-    else:
-        header = all_vals[0]
-        rows = all_vals[1:]
-
-    # Build dict: date -> coin -> {price, pct}
-    data_map = {}
-    for r in rows:
-        # kỳ vọng Data format: [Date, Coin, Giá, %24h, RSI, Insight]
-        if len(r) < 4:
-            continue
-        date = r[0].strip()
-        coin = r[1].strip().lower()
-        price = r[2].strip()
-        pct = r[3].strip()
-        # chuyển giá/pct sang số nếu có thể
-        try:
-            price_val = float(price.replace(",", "").replace(" ", ""))
-        except:
-            price_val = None
-        try:
-            pct_val = float(pct.replace("%", "").replace(",", "").strip())
-        except:
-            pct_val = None
-
-        data_map.setdefault(date, {})
-        data_map[date][coin] = {"price": price_val, "pct": pct_val}
-
-    dates = sorted(data_map.keys())  # format YYYY-MM-DD nên sort lexicographically ok
-
-    # Tạo header cho ChartData
-    header = ["Date"]
-    for coin in coins:
-        header.append(f"{coin}_price")
-        header.append(f"{coin}_pct24")
-
-    # Build rows
-    chart_rows = []
-    for date in dates:
-        row = [date]
-        for coin in coins:
-            coin_lower = coin.lower()
-            entry = data_map.get(date, {}).get(coin_lower, {})
-            price_val = entry.get("price")
-            pct_val = entry.get("pct")
-            # đưa giá/pct lên string (so Google Sheets dễ nhận)
-            row.append("" if price_val is None else float(price_val))
-            row.append("" if pct_val is None else float(pct_val))
-        chart_rows.append(row)
-
-    # Ghi vào sheet ChartData (tạo nếu chưa có)
-    try:
-        chart_ws = sh.worksheet("ChartData")
-    except gspread.exceptions.WorksheetNotFound:
-        # đặt index=2 để Charts(0) và Data(1) có thể đứng trước (sau sẽ reorder)
-        chart_ws = sh.add_worksheet(title="ChartData", rows=str(max(100, len(chart_rows)+5)), cols=str(len(header)), index=2)
-
-    # Clear và ghi dữ liệu
-    chart_ws.clear()
-    # chuẩn bị range dữ liệu toàn bộ
-    # append_row từng hàng hơi chậm, ta dùng batch_update values
-    values = [header] + chart_rows
-    chart_ws.update("A1", values, value_input_option="USER_ENTERED")
-
-    print(f"✅ ChartData sheet updated ({len(chart_rows)} rows).")
-    return chart_ws._properties["sheetId"], len(chart_rows)  # trả về sheetId và số hàng dữ liệu
+    print("✅ Google Sheet 'Data' updated with formatting!")
+    
 # ===============================
 # Hàm vẽ Charts gom vào 1 sheet
 # ===============================
