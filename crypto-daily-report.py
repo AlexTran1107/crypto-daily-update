@@ -84,9 +84,9 @@ def update_google_sheet(rows):
 
     # Nếu sheet trống → thêm header
     if not worksheet.get_all_values():
-        header = ["Date", "Coin", "Price (USD)", "% 24h", "RSI"]
+        header = ["Date", "Coin", "Price (USD)", "% 24h", "RSI", "Insight"]
         worksheet.append_row(header)
-        worksheet.format("A1:E1", {
+        worksheet.format("A1:F1", {
             "backgroundColor": {"red": 0.2, "green": 0.6, "blue": 0.86},
             "horizontalAlignment": "CENTER",
             "textFormat": {"foregroundColor": {"red": 1, "green": 1, "blue": 1}, "bold": True}
@@ -98,8 +98,8 @@ def update_google_sheet(rows):
         worksheet.append_row([today] + row)
 
     print("✅ Data sheet updated!")
-
     return worksheet
+
 
 # ===============================
 # Create Charts
@@ -110,7 +110,6 @@ def create_charts_in_one_sheet(spreadsheet_id, creds, coin_ids):
     # Lấy sheet list
     sheet_metadata = service.spreadsheets().get(spreadsheetId=spreadsheet_id).execute()
     sheets = sheet_metadata.get("sheets", [])
-
     sheet_map = {s["properties"]["title"]: s["properties"]["sheetId"] for s in sheets}
 
     # Đảm bảo có sheet Chart
@@ -129,16 +128,14 @@ def create_charts_in_one_sheet(spreadsheet_id, creds, coin_ids):
     start_row = 1
 
     for coin in coin_ids:
-        # Range A1 notation cho Data
-        # Cột A = Date, B = Coin, C = Price, D = %24h
-        chart_title = f"{coin.upper()} Price & %24h Change"
+        chart_title = f"{coin.upper()} - Price vs %24h Change"
         requests.append({
             "addChart": {
                 "chart": {
                     "spec": {
                         "title": chart_title,
                         "basicChart": {
-                            "chartType": "COMBO",
+                            "chartType": "LINE",
                             "legendPosition": "BOTTOM_LEGEND",
                             "axis": [
                                 {"position": "BOTTOM_AXIS", "title": "Date"},
@@ -149,12 +146,12 @@ def create_charts_in_one_sheet(spreadsheet_id, creds, coin_ids):
                                 {"domain": {"sourceRange": {"sources": [{
                                     "sheetId": data_sheet_id,
                                     "startRowIndex": 1,
-                                    "startColumnIndex": 0,
+                                    "startColumnIndex": 0,   # Date
                                     "endColumnIndex": 1
                                 }]}}}
                             ],
                             "series": [
-                                {
+                                {   # Giá
                                     "series": {"sourceRange": {"sources": [{
                                         "sheetId": data_sheet_id,
                                         "startRowIndex": 1,
@@ -164,7 +161,7 @@ def create_charts_in_one_sheet(spreadsheet_id, creds, coin_ids):
                                     "targetAxis": "LEFT_AXIS",
                                     "type": "LINE"
                                 },
-                                {
+                                {   # % 24h
                                     "series": {"sourceRange": {"sources": [{
                                         "sheetId": data_sheet_id,
                                         "startRowIndex": 1,
@@ -172,7 +169,7 @@ def create_charts_in_one_sheet(spreadsheet_id, creds, coin_ids):
                                         "endColumnIndex": 4
                                     }]}},
                                     "targetAxis": "RIGHT_AXIS",
-                                    "type": "COLUMN"
+                                    "type": "LINE"
                                 }
                             ]
                         }
@@ -185,7 +182,7 @@ def create_charts_in_one_sheet(spreadsheet_id, creds, coin_ids):
                 }
             }
         })
-        start_row += 15  # cách nhau 15 dòng để không đè chart
+        start_row += 20  # để chừa khoảng cách giữa các chart
 
     service.spreadsheets().batchUpdate(spreadsheetId=spreadsheet_id, body={"requests": requests}).execute()
     print("📊 Charts updated!")
